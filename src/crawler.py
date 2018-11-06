@@ -7,9 +7,11 @@ import datetime
 # This was adapted from https://medium.com/@RareLoot/using-pushshifts-api-to-extract-reddit-submissions-fb517b286563
 
 jsonDir = "../raw/"
-subreddit = ["waze", "GoogleMaps", "applemaps"]
+# subreddit = ["waze", "GoogleMaps", "applemaps"]
+subreddit = ["waze"]
 startDate = "1514764800" # Jan 1, 2018
 subStats = []
+comments = []
 
 def getPushshiftData(after, sub):
     url = 'https://api.pushshift.io/reddit/search/submission/?size=1000&after='+str(after)+'&subreddit='+str(sub)
@@ -17,6 +19,33 @@ def getPushshiftData(after, sub):
     r = requests.get(url)
     data = json.loads(r.text)
     return data['data']
+
+def getPushshiftDataComments(after, sub, subm_id):
+    url = 'https://api.pushshift.io/reddit/search/comment/?size=1000&after='+str(after)+'&subreddit='+str(sub)+'&link_id='+str(subm_id)
+    print(url)
+    r = requests.get(url)
+    data = json.loads(r.text)
+    return data['data']
+
+def collectCommentData(comm):
+    body = comm['body']
+    author = comm['author']
+    comm_id = comm['id']
+    score = comm['score']
+    created = datetime.datetime.fromtimestamp(comm['created_utc']) #1520561700.0
+    parent_id = comm['parent_id']
+    permalink = comm['permalink']
+    
+    return {
+        "subreddit": subreddit,
+        "comm_id": comm_id,
+        "body": body,
+        "author": author,
+        "score": score,
+        "created": str(created.year) + "-" + str(created.month) + "-" + str(created.day),
+        "permalink": permalink,
+        "parent_id": parent_id
+    }
 
 def collectSubData(subm):
     title = subm['title']
@@ -33,6 +62,14 @@ def collectSubData(subm):
     permalink = subm['permalink']
     selftext = subm['selftext']
     subreddit = subm["subreddit"]
+
+    comments = []
+    raw_comments = getPushshiftDataComments(startDate, subreddit, sub_id)
+    print(sub_id + ": " + str(len(raw_comments)))
+    for entry in raw_comments:
+        comments.append(collectCommentData(entry))
+
+    print(str(len(comments)))
     
     subStats.append({
         "subreddit": subreddit,
@@ -45,20 +82,18 @@ def collectSubData(subm):
         "numComms": numComms,
         "permalink": permalink,
         "flair": flair,
-        "selftext": selftext
+        "selftext": selftext,
+        "comments": comments
     })
-    # subStats[sub_id] = subData
 
 def collectPerSubreddit(sub):
     data = getPushshiftData(startDate, sub)
 
-    subCount = 0
     # Will run until all posts have been gathered 
     # from the 'after' date up until before date
     while len(data) > 0:
         for submission in data:
             collectSubData(submission)
-            subCount+=1
         # Calls getPushshiftData() with the created date of the last submission
         print(len(data))
         print(str(datetime.datetime.fromtimestamp(data[-1]['created_utc'])))
@@ -70,5 +105,6 @@ def collectPerSubreddit(sub):
         json.dump(subStats, jsonFile)
 
 for sub in subreddit:
+    startDate = "1514764800" # Jan 1, 2018
     collectPerSubreddit(sub)
     subStats = []
