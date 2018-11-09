@@ -7,11 +7,12 @@ import datetime
 # This was adapted from https://medium.com/@RareLoot/using-pushshifts-api-to-extract-reddit-submissions-fb517b286563
 
 jsonDir = "../raw/"
-# subreddit = ["waze", "GoogleMaps", "applemaps"]
-subreddit = ["waze"]
+subreddit = ["waze", "GoogleMaps", "applemaps"]
+# subreddit = ["applemaps"]
 startDate = "1514764800" # Jan 1, 2018
 subStats = []
 comments = []
+textOnly = []
 
 def getPushshiftData(after, sub):
     url = 'https://api.pushshift.io/reddit/search/submission/?size=1000&after='+str(after)+'&subreddit='+str(sub)
@@ -35,6 +36,11 @@ def collectCommentData(comm):
     created = datetime.datetime.fromtimestamp(comm['created_utc']) #1520561700.0
     parent_id = comm['parent_id']
     permalink = comm['permalink']
+
+    textOnly.append({
+        "comm_id": comm_id,
+        "body": body
+    })
     
     return {
         "subreddit": subreddit,
@@ -62,6 +68,12 @@ def collectSubData(subm):
     permalink = subm['permalink']
     selftext = subm['selftext']
     subreddit = subm["subreddit"]
+
+    if selftext:
+        textOnly.append({
+        "sub_id": sub_id,
+        "selftext": selftext
+    })
 
     comments = []
     raw_comments = getPushshiftDataComments(startDate, subreddit, sub_id)
@@ -104,7 +116,12 @@ def collectPerSubreddit(sub):
     with open(jsonDir + jsonName, "w+") as jsonFile:
         json.dump(subStats, jsonFile)
 
+    textOnlyName = "raw_textonly_" + sub + ".json"
+    with open(jsonDir + textOnlyName, "w+") as jsonFile:
+        json.dump(textOnly, jsonFile)
+
 for sub in subreddit:
     startDate = "1514764800" # Jan 1, 2018
     collectPerSubreddit(sub)
     subStats = []
+    textOnly = []
