@@ -8,6 +8,9 @@ feedparser = "*"
 pandas = "*"
 request = "*"
 requests = "*"
+gensim = "*"
+nltk = "*"
+certifi = "*"
 
 [dev-packages]
 
