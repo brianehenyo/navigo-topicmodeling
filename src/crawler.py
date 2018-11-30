@@ -38,7 +38,7 @@ def collectCommentData(comm):
     permalink = comm['permalink']
 
     textOnly.append({
-        "comm_id": comm_id,
+        "id": comm_id,
         "body": body
     })
     
@@ -71,8 +71,8 @@ def collectSubData(subm):
 
     if selftext:
         textOnly.append({
-        "sub_id": sub_id,
-        "selftext": selftext
+        "id": sub_id,
+        "body": selftext
     })
 
     comments = []
