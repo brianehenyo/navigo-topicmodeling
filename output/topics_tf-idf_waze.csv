@@ -1,0 +1,11 @@
+topic,word
+0,0.016*"remov" + 0.015*"work" + 0.013*"road" + 0.012*"report" + 0.012*"waze" + 0.011*"rout" + 0.008*"like" + 0.008*"think" + 0.008*"map" + 0.007*"nice"
+1,0.015*"waze" + 0.014*"thank" + 0.013*"sure" + 0.010*"start" + 0.009*"issu" + 0.009*"work" + 0.008*"know" + 0.008*"good" + 0.008*"version" + 0.007*"pretti"
+2,0.013*"report" + 0.011*"waze" + 0.010*"thing" + 0.010*"work" + 0.009*"rout" + 0.009*"time" + 0.008*"editor" + 0.008*"point" + 0.008*"right" + 0.008*"help"
+3,0.039*"thank" + 0.011*"waze" + 0.010*"android" + 0.010*"iphon" + 0.010*"tri" + 0.009*"map" + 0.009*"googl" + 0.008*"look" + 0.008*"fix" + 0.008*"happi"
+4,0.015*"issu" + 0.013*"problem" + 0.012*"waze" + 0.012*"rout" + 0.011*"like" + 0.010*"work" + 0.010*"happen" + 0.009*"turn" + 0.008*"show" + 0.008*"delet"
+5,0.014*"waze" + 0.013*"phone" + 0.011*"carplay" + 0.010*"work" + 0.010*"time" + 0.009*"point" + 0.008*"googl" + 0.008*"drive" + 0.008*"rout" + 0.008*"map"
+6,0.019*"report" + 0.015*"waze" + 0.011*"check" + 0.010*"polic" + 0.008*"rout" + 0.007*"button" + 0.007*"time" + 0.007*"know" + 0.007*"road" + 0.006*"vehicl"
+7,0.014*"waze" + 0.010*"data" + 0.010*"phone" + 0.010*"googl" + 0.009*"voic" + 0.008*"android" + 0.008*"work" + 0.008*"rout" + 0.008*"like" + 0.008*"run"
+8,0.024*"waze" + 0.017*"android" + 0.013*"auto" + 0.013*"updat" + 0.013*"yeah" + 0.012*"drive" + 0.010*"know" + 0.010*"option" + 0.010*"rout" + 0.009*"beta"
+9,0.011*"waze" + 0.011*"road" + 0.011*"speed" + 0.011*"rout" + 0.010*"work" + 0.009*"know" + 0.008*"haven" + 0.008*"trip" + 0.008*"area" + 0.007*"drive"
