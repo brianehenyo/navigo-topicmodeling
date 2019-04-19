@@ -27,19 +27,13 @@ reddit_waze_tidy <- reddit_waze_raw %>%
 library(tidytext)
 
 reddit_waze_tidy <- reddit_waze_tidy %>% 
-  unnest_tokens(word, title_key, token = "words") %>% 
+  unnest_tokens(word, body, token = "words") %>% 
   anti_join(get_stopwords()) %>% 
   filter(!str_detect(word, "[0-9]+")) %>% 
   add_count(word) %>% 
   filter(n > 100) %>% 
-  select(-n)
-
-leiden_sparse_community <- leiden_tidy %>% 
-  count(community, word) %>% 
-  cast_sparse(community, word, n)
-
-leiden_sparse_article <- leiden_tidy %>% 
-  count(eid, word) %>% 
-  cast_sparse(eid, word, n)
+  select(-n) %>% 
+  count(id, word) %>% 
+  cast_sparse(id, word, n)
 ```
 
