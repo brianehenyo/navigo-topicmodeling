@@ -85,3 +85,100 @@ k_result %>%
        topics would be around 48") +
   theme_tufte()
 ```
+
+## Compare Exclusivity and Semantic Coherence
+
+```{r}
+k_result %>%
+  select(K, exclusivity, semantic_coherence) %>%
+  filter(K %in% c(40, 48)) %>%
+  unnest() %>%
+  mutate(K = as.factor(K)) %>%
+  ggplot(aes(semantic_coherence, exclusivity, color = K)) +
+  geom_point(size = 2, alpha = 0.7) +
+  labs(x = "Semantic coherence",
+       y = "Exclusivity",
+       title = "Comparing exclusivity and semantic coherence",
+       subtitle = "Models with fewer topics have higher semantic coherence for more topics, but lower exclusivity")
+```
+
+## Choose a the topic model with best K
+
+```{r}
+topic_model <- k_result %>% 
+  filter(K == 48) %>% 
+  pull(topic_model) %>% 
+  .[[1]]
+
+topic_model
+```
+
+
+## Explore the Topic Model
+
+```{r}
+td_beta <- tidy(topic_model)
+
+td_beta
+```
+
+## Probability that each document is generated from a topic
+
+```{r}
+td_gamma <- tidy(topic_model, matrix = "gamma",
+                 document_names = rownames(leiden_sparse_article))
+
+td_gamma
+```
+
+
+## Topic prevalence and top words per topic
+
+```{r}
+library(ggthemes)
+
+top_terms <- td_beta %>%
+  arrange(beta) %>%
+  group_by(topic) %>%
+  top_n(7, beta) %>%
+  arrange(-beta) %>%
+  select(topic, term) %>%
+  summarise(terms = list(term)) %>%
+  mutate(terms = map(terms, paste, collapse = ", ")) %>% 
+  unnest()
+
+gamma_terms <- td_gamma %>%
+  group_by(topic) %>%
+  summarise(gamma = mean(gamma)) %>%
+  arrange(desc(gamma)) %>%
+  left_join(top_terms, by = "topic") %>%
+  mutate(topic = paste0("Topic ", topic),
+         topic = reorder(topic, gamma))
+
+gamma_terms %>%
+  top_n(48, gamma) %>%
+  ggplot(aes(topic, gamma, label = terms, fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  geom_text(hjust = 0, nudge_y = 0.001, size = 2,
+            family = "Avenir") +
+  coord_flip() +
+  scale_y_continuous(expand = c(0,0),
+                     limits = c(0, 0.3),
+                     labels = percent_format()) +
+  theme_tufte(base_family = "Avenir", ticks = FALSE) +
+  theme(plot.title = element_text(size = 16,
+                                  family="Avenir"),
+        plot.subtitle = element_text(size = 13), axis.text.y = element_text(size = 5)) +
+  labs(x = NULL, y = expression(gamma),
+       title = "Topic prevalence across article titles",
+       subtitle = "With the top 7 words that contribute to each topic")
+```
+
+## Gamma ordered by prevalence
+
+```{r}
+gamma_terms %>%
+  select(topic, gamma, terms) %>%
+  kable(digits = 3, 
+        col.names = c("Topic", "Expected topic proportion", "Top 7 terms"))
+```
