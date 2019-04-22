@@ -37,3 +37,51 @@ reddit_waze_tidy <- reddit_waze_tidy %>%
   cast_sparse(id, word, n)
 ```
 
+## Train STM
+
+```{r}
+library(stm)
+library(furrr)
+
+many_models <- data_frame(K = c(10, 30, 50, 70, 100)) %>%
+  mutate(topic_model = future_map(K, ~stm(reddit_waze_tidy, K = ., verbose = FALSE)))
+```
+
+## Explore good K
+
+```{r}
+heldout <- make.heldout(reddit_waze_tidy)
+
+k_result <- many_models %>%
+  mutate(exclusivity = map(topic_model, exclusivity),
+         semantic_coherence = map(topic_model, semanticCoherence, reddit_waze_tidy),
+         eval_heldout = map(topic_model, eval.heldout, heldout$missing),
+         residual = map(topic_model, checkResiduals, reddit_waze_tidy),
+         bound =  map_dbl(topic_model, function(x) max(x$convergence$bound)),
+         lfact = map_dbl(topic_model, function(x) lfactorial(x$settings$dim$K)),
+         lbound = bound + lfact,
+         iterations = map_dbl(topic_model, function(x) length(x$convergence$bound)))
+
+k_result
+```
+
+## Plot Model diagnostics
+
+```{r}
+k_result %>%
+  transmute(K,
+            `Lower bound` = lbound,
+            Residuals = map_dbl(residual, "dispersion"),
+            `Semantic coherence` = map_dbl(semantic_coherence, mean),
+            `Held-out likelihood` = map_dbl(eval_heldout, "expected.heldout")) %>%
+  gather(Metric, Value, -K) %>%
+  ggplot(aes(K, Value, color = Metric)) +
+  geom_line(size = 1.5, alpha = 0.7, show.legend = FALSE) +
+  facet_wrap(~Metric, scales = "free_y") +
+  labs(x = "K (number of topics)",
+       y = NULL,
+       title = "Model diagnostics by number of topics",
+       subtitle = "These diagnostics indicate that a good number of 
+       topics would be around 48") +
+  theme_tufte()
+```
