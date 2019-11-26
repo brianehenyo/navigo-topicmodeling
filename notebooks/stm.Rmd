@@ -10,8 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load dataset
 
 ```{r}
-library(dplyr)
-
 reddit_waze_path <- file.path(getwd(), "../raw/raw_textonly_waze.json")
 reddit_waze_raw <- read_json(reddit_waze_path, simplifyVector = TRUE)
 ```
