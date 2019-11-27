@@ -112,11 +112,11 @@ def collectPerSubreddit(sub):
         after = data[-1]['created_utc']
         data = getPushshiftData(after, sub)
 
-    jsonName = "raw_submissions_" + sub + ".json"
+    jsonName = "raw_submissions_" + sub + "_2019.json"
     with open(jsonDir + jsonName, "w+") as jsonFile:
         json.dump(subStats, jsonFile)
 
-    textOnlyName = "raw_textonly_" + sub + ".json"
+    textOnlyName = "raw_textonly_" + sub + "_2019.json"
     with open(jsonDir + textOnlyName, "w+") as jsonFile:
         json.dump(textOnly, jsonFile)
 

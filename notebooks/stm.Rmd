@@ -20,9 +20,10 @@ reddit_waze_raw <- read_json(reddit_waze_path, simplifyVector = TRUE)
 reddit_waze_tidy <- reddit_waze_raw %>% 
   replace_with_na_all(condition = ~.x %in% common_na_strings) %>% 
   replace_with_na_all(condition = ~.x == "[deleted]") %>% 
-  drop_na(body)
-
-library(tidytext)
+  drop_na(body) %>% 
+  mutate(body = str_replace_all(body, 
+                                pattern=regex("(www|https?[^\\s]+)"), 
+                                replacement = "")) #rm urls
 
 reddit_waze_tidy <- reddit_waze_tidy %>% 
   unnest_tokens(word, body, token = "words") %>% 
@@ -38,9 +39,6 @@ reddit_waze_tidy <- reddit_waze_tidy %>%
 ## Train STM
 
 ```{r}
-library(stm)
-library(furrr)
-
 many_models <- data_frame(K = c(10, 30, 50, 70, 100)) %>%
   mutate(topic_model = future_map(K, ~stm(reddit_waze_tidy, K = ., verbose = FALSE)))
 ```
