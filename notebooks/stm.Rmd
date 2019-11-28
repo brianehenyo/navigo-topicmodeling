@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load dataset
 
 ```{r}
-reddit_waze_path <- file.path(getwd(), "../raw/raw_textonly_waze.json")
+reddit_waze_path <- file.path(getwd(), "../raw/raw_textonly_waze_2019.json")
 reddit_waze_raw <- read_json(reddit_waze_path, simplifyVector = TRUE)
 ```
 
@@ -23,7 +23,12 @@ reddit_waze_tidy <- reddit_waze_raw %>%
   drop_na(body) %>% 
   mutate(body = str_replace_all(body, 
                                 pattern=regex("(www|https?[^\\s]+)"), 
-                                replacement = "")) #rm urls
+                                replacement = ""), #rm urls
+         body = str_replace_all(body, "&#x27;|&quot;|&#x2F;", "'"), ## weird encoding
+         body = str_replace_all(body, "<a(.*?)>", " "),             ## links 
+         body = str_replace_all(body, "&gt;|&lt;|&amp;", " "),      ## html yuck
+         body = str_replace_all(body, "&#[:digit:]+;", " "),        ## html yuck
+         body = str_remove_all(body, "<[^>]*>")) 
 
 reddit_waze_tidy <- reddit_waze_tidy %>% 
   unnest_tokens(word, body, token = "words") %>% 
@@ -39,7 +44,7 @@ reddit_waze_tidy <- reddit_waze_tidy %>%
 ## Train STM
 
 ```{r}
-many_models <- data_frame(K = c(10, 30, 50, 70, 100)) %>%
+many_models <- data_frame(K = c(25, 50, 100, 200)) %>%
   mutate(topic_model = future_map(K, ~stm(reddit_waze_tidy, K = ., verbose = FALSE)))
 ```
 
@@ -77,9 +82,8 @@ k_result %>%
   labs(x = "K (number of topics)",
        y = NULL,
        title = "Model diagnostics by number of topics",
-       subtitle = "These diagnostics indicate that a good number of 
-       topics would be around 48") +
-  theme_tufte()
+       subtitle = "These diagnostics indicate that a good number of topics would be around 48") +
+  theme_tufte(base_family = "Arial", ticks = FALSE)
 ```
 
 ## Compare Exclusivity and Semantic Coherence
@@ -87,7 +91,7 @@ k_result %>%
 ```{r}
 k_result %>%
   select(K, exclusivity, semantic_coherence) %>%
-  filter(K %in% c(40, 48)) %>%
+  filter(K %in% c(50, 100, 200)) %>%
   unnest() %>%
   mutate(K = as.factor(K)) %>%
   ggplot(aes(semantic_coherence, exclusivity, color = K)) +
@@ -102,7 +106,7 @@ k_result %>%
 
 ```{r}
 topic_model <- k_result %>% 
-  filter(K == 48) %>% 
+  filter(K == 50) %>% 
   pull(topic_model) %>% 
   .[[1]]
 
@@ -115,14 +119,29 @@ topic_model
 ```{r}
 td_beta <- tidy(topic_model)
 
-td_beta
+td_beta %>%
+    group_by(topic) %>%
+    # filter(topic %in% c(19, 37, 78)) %>% 
+    top_n(10, beta) %>%
+    ungroup() %>%
+    mutate(topic = paste0("Topic ", topic),
+           term = reorder_within(term, beta, topic)) %>%
+    ggplot(aes(term, beta, fill = as.factor(topic))) +
+    geom_col(alpha = 0.8, show.legend = FALSE) +
+    facet_wrap(~ topic, scales = "free_y") +
+    coord_flip() +
+    scale_x_reordered() +
+    labs(x = NULL, y = expression(beta),
+         title = "Highest word probabilities for each topic",
+         subtitle = "Different words are associated with different topics") +
+    theme_tufte()
 ```
 
 ## Probability that each document is generated from a topic
 
 ```{r}
 td_gamma <- tidy(topic_model, matrix = "gamma",
-                 document_names = rownames(leiden_sparse_article))
+                 document_names = rownames(reddit_waze_tidy))
 
 td_gamma
 ```
@@ -152,14 +171,14 @@ gamma_terms <- td_gamma %>%
          topic = reorder(topic, gamma))
 
 gamma_terms %>%
-  top_n(48, gamma) %>%
+  top_n(20, gamma) %>%
   ggplot(aes(topic, gamma, label = terms, fill = topic)) +
   geom_col(show.legend = FALSE) +
   geom_text(hjust = 0, nudge_y = 0.001, size = 2,
             family = "Avenir") +
   coord_flip() +
   scale_y_continuous(expand = c(0,0),
-                     limits = c(0, 0.3),
+                     limits = c(0, 0.05),
                      labels = percent_format()) +
   theme_tufte(base_family = "Avenir", ticks = FALSE) +
   theme(plot.title = element_text(size = 16,
