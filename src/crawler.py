@@ -7,7 +7,8 @@ import datetime
 # This was adapted from https://medium.com/@RareLoot/using-pushshifts-api-to-extract-reddit-submissions-fb517b286563
 
 jsonDir = "../raw/"
-subreddit = ["waze", "GoogleMaps", "applemaps"]
+subreddit = ["GoogleMaps", "applemaps"]
+# subreddit = ["waze", "GoogleMaps", "applemaps"]
 # subreddit = ["applemaps"]
 startDate = "1514764800" # Jan 1, 2018
 subStats = []

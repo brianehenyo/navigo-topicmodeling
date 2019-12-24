@@ -10,14 +10,30 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load dataset
 
 ```{r}
-reddit_waze_path <- file.path(getwd(), "../raw/raw_textonly_waze_2019.json")
-reddit_waze_raw <- read_json(reddit_waze_path, simplifyVector = TRUE)
+reddit_path <- file.path(getwd(), "../raw/raw_textonly_waze_2019.json")
+reddit_waze_raw <- read_json(reddit_path, simplifyVector = TRUE)
+reddit_path <- file.path(getwd(), "../raw/raw_textonly_GoogleMaps_2019.json")
+reddit_gmaps_raw <- read_json(reddit_path, simplifyVector = TRUE)
+reddit_path <- file.path(getwd(), "../raw/raw_textonly_applemaps_2019.json")
+reddit_applemaps_raw <- read_json(reddit_path, simplifyVector = TRUE)
 ```
 
 ## Tidy Text
 
 ```{r}
-reddit_waze_tidy <- reddit_waze_raw %>% 
+reddit_waze_raw <- reddit_waze_raw %>% 
+  mutate(community = "waze")
+
+reddit_gmaps_raw <- reddit_gmaps_raw %>% 
+  mutate(community = "gmaps")
+
+reddit_applemaps_raw <- reddit_applemaps_raw %>% 
+  mutate(community = "apple")
+
+reddit_tidy <- rbind(reddit_waze_raw, reddit_gmaps_raw)
+reddit_tidy <- rbind(reddit_tidy, reddit_applemaps_raw)
+
+reddit_tidy <- reddit_tidy %>% 
   replace_with_na_all(condition = ~.x %in% common_na_strings) %>% 
   replace_with_na_all(condition = ~.x == "[deleted]") %>% 
   drop_na(body) %>% 
@@ -30,7 +46,7 @@ reddit_waze_tidy <- reddit_waze_raw %>%
          body = str_replace_all(body, "&#[:digit:]+;", " "),        ## html yuck
          body = str_remove_all(body, "<[^>]*>")) 
 
-reddit_waze_tidy <- reddit_waze_tidy %>% 
+reddit_tidy <- reddit_tidy %>% 
   unnest_tokens(word, body, token = "words") %>% 
   anti_join(get_stopwords()) %>% 
   filter(!str_detect(word, "[0-9]+")) %>% 
@@ -44,20 +60,21 @@ reddit_waze_tidy <- reddit_waze_tidy %>%
 ## Train STM
 
 ```{r}
-many_models <- data_frame(K = c(25, 50, 100, 200)) %>%
-  mutate(topic_model = future_map(K, ~stm(reddit_waze_tidy, K = ., verbose = FALSE)))
+# many_models <- data_frame(K = c(25, 50, 100, 200)) %>%
+many_models <- data_frame(K = c(200)) %>%
+  mutate(topic_model = future_map(K, ~stm(reddit_tidy, K = ., verbose = FALSE)))
 ```
 
 ## Explore good K
 
 ```{r}
-heldout <- make.heldout(reddit_waze_tidy)
+heldout <- make.heldout(reddit_tidy)
 
 k_result <- many_models %>%
   mutate(exclusivity = map(topic_model, exclusivity),
-         semantic_coherence = map(topic_model, semanticCoherence, reddit_waze_tidy),
+         semantic_coherence = map(topic_model, semanticCoherence, reddit_tidy),
          eval_heldout = map(topic_model, eval.heldout, heldout$missing),
-         residual = map(topic_model, checkResiduals, reddit_waze_tidy),
+         residual = map(topic_model, checkResiduals, reddit_tidy),
          bound =  map_dbl(topic_model, function(x) max(x$convergence$bound)),
          lfact = map_dbl(topic_model, function(x) lfactorial(x$settings$dim$K)),
          lbound = bound + lfact,
@@ -91,7 +108,7 @@ k_result %>%
 ```{r}
 k_result %>%
   select(K, exclusivity, semantic_coherence) %>%
-  filter(K %in% c(50, 100, 200)) %>%
+  filter(K %in% c(200)) %>%
   unnest() %>%
   mutate(K = as.factor(K)) %>%
   ggplot(aes(semantic_coherence, exclusivity, color = K)) +
@@ -106,7 +123,7 @@ k_result %>%
 
 ```{r}
 topic_model <- k_result %>% 
-  filter(K == 50) %>% 
+  filter(K == 200) %>% 
   pull(topic_model) %>% 
   .[[1]]
 
@@ -141,7 +158,7 @@ td_beta %>%
 
 ```{r}
 td_gamma <- tidy(topic_model, matrix = "gamma",
-                 document_names = rownames(reddit_waze_tidy))
+                 document_names = rownames(reddit_tidy))
 
 td_gamma
 ```
@@ -197,3 +214,11 @@ gamma_terms %>%
   kable(digits = 3, 
         col.names = c("Topic", "Expected topic proportion", "Top 7 terms"))
 ```
+
+## Save files
+
+```{r}
+write.csv(gamma_terms, file="../output/topics_k200.csv", row.names = FALSE)
+write.csv(leiden_gamma_small, file="../outputs/topic-modeling/leiden_complete_topics_by_article_k550.csv", row.names = FALSE)
+```
+
