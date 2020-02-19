@@ -219,6 +219,22 @@ gamma_terms %>%
 
 ```{r}
 write.csv(gamma_terms, file="../output/topics_k200.csv", row.names = FALSE)
-write.csv(leiden_gamma_small, file="../outputs/topic-modeling/leiden_complete_topics_by_article_k550.csv", row.names = FALSE)
 ```
+
+## Filter top topics per document
+
+```{r}
+reddit_all <- rbind(reddit_waze_raw, reddit_gmaps_raw)
+reddit_all <- rbind(reddit_all, reddit_applemaps_raw)
+
+td_gamma %>% 
+  group_by(document) %>% 
+  top_n(5, gamma) %>% 
+  arrange(document, -gamma) %>% 
+  left_join(top_terms) %>% 
+  left_join(reddit_all, by = c("document" = "id")) -> top_topics_per_doc
+  
+write.csv(top_topics_per_doc, file="../output/topics_per_doc.csv", row.names = FALSE)
+```
+
 
